@@ -1,0 +1,20 @@
+{
+	"name": "ds_silver_unidades",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "ls_dw_fuerzas_armadas_destino",
+			"type": "LinkedServiceReference"
+		},
+		"folder": {
+			"name": "silver"
+		},
+		"annotations": [],
+		"type": "AzureSqlTable",
+		"schema": [],
+		"typeProperties": {
+			"schema": "dbo",
+			"table": "dim_unidades"
+		}
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

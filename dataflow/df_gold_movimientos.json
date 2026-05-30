@@ -1,0 +1,278 @@
+{
+	"name": "df_gold_movimientos",
+	"properties": {
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "ds_silver_movimientos_personal",
+						"type": "DatasetReference"
+					},
+					"name": "SilverMovimientos"
+				},
+				{
+					"dataset": {
+						"referenceName": "ds_silver_tipos_movimiento",
+						"type": "DatasetReference"
+					},
+					"name": "SilverTiposMovimiento"
+				},
+				{
+					"dataset": {
+						"referenceName": "ds_silver_rangos",
+						"type": "DatasetReference"
+					},
+					"name": "SilverRangos"
+				},
+				{
+					"dataset": {
+						"referenceName": "ds_silver_efectivos",
+						"type": "DatasetReference"
+					},
+					"name": "SilverEfectivos"
+				},
+				{
+					"dataset": {
+						"referenceName": "ds_silver_unidades",
+						"type": "DatasetReference"
+					},
+					"name": "SilverUnidades"
+				}
+			],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "ds_gold_hechos_movimientos",
+						"type": "DatasetReference"
+					},
+					"name": "sink1"
+				}
+			],
+			"transformations": [
+				{
+					"name": "join1"
+				},
+				{
+					"name": "select1"
+				},
+				{
+					"name": "join2"
+				},
+				{
+					"name": "select2"
+				},
+				{
+					"name": "join3"
+				},
+				{
+					"name": "select3"
+				},
+				{
+					"name": "join4"
+				},
+				{
+					"name": "select4"
+				}
+			],
+			"scriptLines": [
+				"source(output(",
+				"          id_movimiento as integer,",
+				"          id_efectivo as integer,",
+				"          id_unidad_destino as integer,",
+				"          id_rango as integer,",
+				"          id_tipo as integer,",
+				"          fecha_movimiento as string,",
+				"          antiguedad_anios as string,",
+				"          salario_mensual as string,",
+				"          observaciones as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     isolationLevel: 'READ_UNCOMMITTED',",
+				"     format: 'table') ~> SilverMovimientos",
+				"source(output(",
+				"          id_tipo as integer,",
+				"          nombre as string,",
+				"          descripcion as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     isolationLevel: 'READ_UNCOMMITTED',",
+				"     format: 'table') ~> SilverTiposMovimiento",
+				"source(output(",
+				"          id_rango as integer,",
+				"          nombre as string,",
+				"          categoria as string,",
+				"          nivel_jerarquico as integer,",
+				"          abreviatura as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     isolationLevel: 'READ_UNCOMMITTED',",
+				"     format: 'table') ~> SilverRangos",
+				"source(output(",
+				"          id_efectivo as integer,",
+				"          id_especialidad as integer,",
+				"          id_unidad_actual as integer,",
+				"          id_rango_actual as integer,",
+				"          nombre as string,",
+				"          ci as string,",
+				"          fecha_nacimiento as string,",
+				"          genero as string,",
+				"          departamento_origen as string,",
+				"          fecha_ingreso as string,",
+				"          estado as string,",
+				"          salario_mensual as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     isolationLevel: 'READ_UNCOMMITTED',",
+				"     format: 'table') ~> SilverEfectivos",
+				"source(output(",
+				"          id_unidad as integer,",
+				"          id_brigada as integer,",
+				"          nombre as string,",
+				"          codigo as string,",
+				"          ciudad as string,",
+				"          departamento as string,",
+				"          tipo_cuartel as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     isolationLevel: 'READ_UNCOMMITTED',",
+				"     format: 'table') ~> SilverUnidades",
+				"SilverMovimientos, SilverTiposMovimiento join(SilverMovimientos@id_tipo == SilverTiposMovimiento@id_tipo,",
+				"     joinType:'left',",
+				"     matchType:'exact',",
+				"     ignoreSpaces: false,",
+				"     broadcast: 'auto')~> join1",
+				"join1 select(mapColumn(",
+				"          id_movimiento,",
+				"          id_efectivo,",
+				"          id_unidad_destino,",
+				"          id_rango,",
+				"          id_tipo = SilverMovimientos@id_tipo,",
+				"          fecha_movimiento,",
+				"          antiguedad_anios,",
+				"          salario_mensual,",
+				"          observaciones,",
+				"          nombre_tipo_movimiento = nombre,",
+				"          desc_tipo_movimiento = descripcion",
+				"     ),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> select1",
+				"select1, SilverRangos join(select1@id_rango == SilverRangos@id_rango,",
+				"     joinType:'left',",
+				"     matchType:'exact',",
+				"     ignoreSpaces: false,",
+				"     broadcast: 'auto')~> join2",
+				"join2 select(mapColumn(",
+				"          id_movimiento,",
+				"          id_efectivo,",
+				"          id_unidad_destino,",
+				"          id_rango = select1@id_rango,",
+				"          id_tipo,",
+				"          fecha_movimiento,",
+				"          antiguedad_anios,",
+				"          salario_mensual,",
+				"          observaciones,",
+				"          nombre_tipo_movimiento,",
+				"          desc_tipo_movimiento,",
+				"          nombre_rango = nombre,",
+				"          categoria_rango = categoria,",
+				"          nivel_jerarquico,",
+				"          abreviatura",
+				"     ),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> select2",
+				"select2, SilverEfectivos join(select2@id_efectivo == SilverEfectivos@id_efectivo,",
+				"     joinType:'left',",
+				"     matchType:'exact',",
+				"     ignoreSpaces: false,",
+				"     broadcast: 'auto')~> join3",
+				"join3 select(mapColumn(",
+				"          id_movimiento,",
+				"          id_efectivo = select2@id_efectivo,",
+				"          id_unidad_destino,",
+				"          id_rango,",
+				"          id_tipo,",
+				"          fecha_movimiento,",
+				"          antiguedad_anios,",
+				"          salario_mensual = select2@salario_mensual,",
+				"          observaciones,",
+				"          nombre_tipo_movimiento,",
+				"          desc_tipo_movimiento,",
+				"          nombre_rango,",
+				"          categoria_rango,",
+				"          nivel_jerarquico,",
+				"          abreviatura,",
+				"          id_especialidad,",
+				"          id_unidad_actual,",
+				"          id_rango_actual,",
+				"          nombre_efectivo = nombre,",
+				"          ci,",
+				"          fecha_nacimiento,",
+				"          genero,",
+				"          departamento_origen,",
+				"          fecha_ingreso,",
+				"          estado,",
+				"          salario_mensual = SilverEfectivos@salario_mensual",
+				"     ),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> select3",
+				"select3, SilverUnidades join(id_unidad_destino == id_unidad,",
+				"     joinType:'left',",
+				"     matchType:'exact',",
+				"     ignoreSpaces: false,",
+				"     broadcast: 'auto')~> join4",
+				"join4 select(mapColumn(",
+				"          id_movimiento,",
+				"          id_efectivo,",
+				"          id_unidad_destino,",
+				"          id_rango,",
+				"          id_tipo,",
+				"          fecha_movimiento,",
+				"          antiguedad_anios,",
+				"          salario_mensual,",
+				"          observaciones,",
+				"          nombre_tipo_movimiento,",
+				"          desc_tipo_movimiento,",
+				"          nombre_rango,",
+				"          categoria_rango,",
+				"          nivel_jerarquico,",
+				"          abreviatura,",
+				"          id_especialidad,",
+				"          id_unidad_actual,",
+				"          id_rango_actual,",
+				"          nombre_efectivo,",
+				"          ci,",
+				"          fecha_nacimiento,",
+				"          genero,",
+				"          departamento_origen,",
+				"          fecha_ingreso,",
+				"          estado,",
+				"          id_brigada,",
+				"          nombre_unidad_destino = nombre,",
+				"          codigo,",
+				"          ciudad,",
+				"          departamento,",
+				"          tipo_cuartel",
+				"     ),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> select4",
+				"select4 sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     deletable:false,",
+				"     insertable:true,",
+				"     updateable:false,",
+				"     upsertable:false,",
+				"     recreate:true,",
+				"     format: 'table',",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     errorHandlingOption: 'stopOnFirstError') ~> sink1"
+			]
+		}
+	}
+}

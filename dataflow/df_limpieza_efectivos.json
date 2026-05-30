@@ -1,0 +1,133 @@
+{
+	"name": "df_limpieza_efectivos",
+	"properties": {
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "ds_bronze_efectivos",
+						"type": "DatasetReference"
+					},
+					"name": "OrigenBronzeEfectivos"
+				}
+			],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "ds_silver_efectivos",
+						"type": "DatasetReference"
+					},
+					"name": "sink1"
+				}
+			],
+			"transformations": [
+				{
+					"name": "derivedColumn1"
+				},
+				{
+					"name": "select1"
+				}
+			],
+			"scriptLines": [
+				"source(output(",
+				"          id_efectivo as integer,",
+				"          id_especialidad as integer,",
+				"          id_unidad_actual as integer,",
+				"          id_rango_actual as integer,",
+				"          nombre as string,",
+				"          ci as string,",
+				"          fecha_nacimiento as string,",
+				"          genero as string,",
+				"          departamento_origen as string,",
+				"          fecha_ingreso as string,",
+				"          estado as string,",
+				"          salario_mensual as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     isolationLevel: 'READ_UNCOMMITTED',",
+				"     format: 'table') ~> OrigenBronzeEfectivos",
+				"select1 derive(nombre = initCap(nombre),",
+				"          ci = concat(\r",
+				"    regexReplace(ci, '[^0-9]', ''),\r",
+				"    ' ',\r",
+				"    case(\r",
+				"        rlike(lower(ci), 'pa|lp'), 'LP',\r",
+				"        rlike(lower(ci), 'cb|co|ba'), 'CB',\r",
+				"        rlike(lower(ci), 'or'), 'OR',\r",
+				"        rlike(lower(ci), 'po|pt'), 'PT',\r",
+				"        rlike(lower(ci), 'ch|su'), 'CH',\r",
+				"        rlike(lower(ci), 'tj|ta'), 'TJ',\r",
+				"        rlike(lower(ci), 'sc|sz'), 'SC',\r",
+				"        rlike(lower(ci), 'be'), 'BE',\r",
+				"        rlike(lower(ci), 'pd|pa'), 'PD',\r",
+				"        ''\r",
+				"    )\r",
+				"),",
+				"          fecha_nacimiento = iif(isNull(fecha_nacimiento) || length(trim(toString(fecha_nacimiento))) == 0 || fecha_nacimiento == 'NULL', \r",
+				"    'Sin Dato', \r",
+				"    toString(\r",
+				"        coalesce(\r",
+				"            toTimestamp(fecha_nacimiento, 'yyyyMMdd'),\r",
+				"            toTimestamp(fecha_nacimiento, 'MM-dd-yyyy'),\r",
+				"            toTimestamp(fecha_nacimiento, 'yyyy-MM-dd'),\r",
+				"            toTimestamp(fecha_nacimiento, 'dd/MM/yyyy'),\r",
+				"            toTimestamp(fecha_nacimiento, 'yyyy/MM/dd'),\r",
+				"            toTimestamp(fecha_nacimiento, 'dd-MM-yyyy'),\r",
+				"            toTimestamp(fecha_nacimiento, 'MM/dd/yyyy')\r",
+				"        ), \r",
+				"        'dd-MM-yyyy'\r",
+				"    )\r",
+				"),",
+				"          genero = case(\r",
+				"    rlike(lower(genero), '^m|hom|^h'), 'Masculino',\r",
+				"    rlike(lower(genero), '^f|muj'), 'Femenino',\r",
+				"    'Sin Dato'\r",
+				"),",
+				"          departamento_origen = case(\r",
+				"    rlike(lower(departamento_origen), 'cb|co|ba'), 'Cochabamba',\r",
+				"    rlike(lower(departamento_origen), 'pa|lp|l\\\\.?p\\\\.?'), 'La Paz',\r",
+				"    rlike(lower(departamento_origen), 'sc|sz|cruz'), 'Santa Cruz',\r",
+				"    rlike(lower(departamento_origen), 'or'), 'Oruro',\r",
+				"    rlike(lower(departamento_origen), 'po|pt'), 'Potosí',\r",
+				"    rlike(lower(departamento_origen), 'ch|su'), 'Chuquisaca',\r",
+				"    rlike(lower(departamento_origen), 'tj|ta'), 'Tarija',\r",
+				"    rlike(lower(departamento_origen), 'be|bn'), 'Beni',\r",
+				"    rlike(lower(departamento_origen), 'pd|pa'), 'Pando',\r",
+				"    'Sin Dato'\r",
+				"),",
+				"          fecha_ingreso = iif(isNull(fecha_ingreso) || length(trim(toString(fecha_ingreso))) == 0 || fecha_ingreso == 'NULL',      'Sin Dato',      toString(         coalesce(             toTimestamp(fecha_ingreso, 'yyyyMMdd'),             toTimestamp(fecha_ingreso, 'MM-dd-yyyy'),             toTimestamp(fecha_ingreso, 'yyyy-MM-dd'),             toTimestamp(fecha_ingreso, 'dd/MM/yyyy'),             toTimestamp(fecha_ingreso, 'yyyy/MM/dd'),             toTimestamp(fecha_ingreso, 'dd-MM-yyyy'),             toTimestamp(fecha_ingreso, 'MM/dd/yyyy')         ),          'dd-MM-yyyy'     ) ),",
+				"          estado = case(     rlike(lower(estado), 'ac|vi|1'), 'Activo',     rlike(lower(estado), 'ba|bj|ja|2'), 'Baja',     rlike(lower(estado), 're|se|3'), 'Reserva',     'Activo' ),",
+				"          salario_mensual = iif(isNull(salario_mensual) || length(trim(toString(salario_mensual))) == 0 || salario_mensual == 'NULL',     'Bs. 0.00',     concat('Bs. ',          regexReplace(             regexReplace(                 regexReplace(lower(toString(salario_mensual)), 'bs\\\\.|bs', ''),                 '[\\\\s\\\\u00a0]',                  ''             ),             ',',              ''         )     ) )) ~> derivedColumn1",
+				"OrigenBronzeEfectivos select(skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> select1",
+				"derivedColumn1 sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     deletable:false,",
+				"     insertable:true,",
+				"     updateable:false,",
+				"     upsertable:false,",
+				"     recreate:true,",
+				"     format: 'table',",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     errorHandlingOption: 'stopOnFirstError',",
+				"     mapColumn(",
+				"          id_efectivo,",
+				"          id_especialidad,",
+				"          id_unidad_actual,",
+				"          id_rango_actual,",
+				"          nombre,",
+				"          ci,",
+				"          fecha_nacimiento,",
+				"          genero,",
+				"          departamento_origen,",
+				"          fecha_ingreso,",
+				"          estado,",
+				"          salario_mensual",
+				"     )) ~> sink1"
+			]
+		}
+	}
+}

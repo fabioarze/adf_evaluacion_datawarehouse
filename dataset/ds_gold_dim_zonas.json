@@ -1,0 +1,52 @@
+{
+	"name": "ds_gold_dim_zonas",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "ls_dw_fuerzas_armadas_destino",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "AzureSqlTable",
+		"schema": [
+			{
+				"name": "id_zona",
+				"type": "int",
+				"precision": 10
+			},
+			{
+				"name": "nombre",
+				"type": "nvarchar"
+			},
+			{
+				"name": "departamento",
+				"type": "nvarchar"
+			},
+			{
+				"name": "frontera_con",
+				"type": "nvarchar"
+			},
+			{
+				"name": "tipo_terreno",
+				"type": "nvarchar"
+			},
+			{
+				"name": "altitud_msnm",
+				"type": "int",
+				"precision": 10
+			},
+			{
+				"name": "nivel_riesgo",
+				"type": "nvarchar"
+			},
+			{
+				"name": "acceso_carretero",
+				"type": "bit"
+			}
+		],
+		"typeProperties": {
+			"schema": "dbo",
+			"table": "dim_zonas"
+		}
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

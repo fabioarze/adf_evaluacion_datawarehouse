@@ -1,0 +1,195 @@
+{
+	"name": "df_carga_hechos_operaciones",
+	"properties": {
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "ds_silver_operaciones",
+						"type": "DatasetReference"
+					},
+					"name": "OrigenOperacionesLimpias"
+				},
+				{
+					"dataset": {
+						"referenceName": "ds_gold_dim_zonas",
+						"type": "DatasetReference"
+					},
+					"name": "DimZonas"
+				},
+				{
+					"dataset": {
+						"referenceName": "ds_gold_dim_tipos_operacion",
+						"type": "DatasetReference"
+					},
+					"name": "DimTiposOperacion"
+				},
+				{
+					"dataset": {
+						"referenceName": "ds_gold_dim_tiempo",
+						"type": "DatasetReference"
+					},
+					"name": "DimTiempo"
+				}
+			],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "ds_gold_hechos_operaciones",
+						"type": "DatasetReference"
+					},
+					"name": "CargarHechos"
+				}
+			],
+			"transformations": [
+				{
+					"name": "FormatearFecha"
+				},
+				{
+					"name": "CruceZonas"
+				},
+				{
+					"name": "CruceTipos"
+				},
+				{
+					"name": "CruceTiempo"
+				},
+				{
+					"name": "select1"
+				}
+			],
+			"scriptLines": [
+				"source(output(",
+				"          id_operacion as integer,",
+				"          id_tipo as integer,",
+				"          id_unidad_resp as integer,",
+				"          id_zona as integer,",
+				"          nombre_operacion as string,",
+				"          fecha_inicio as string,",
+				"          fecha_fin as string,",
+				"          efectivos_desplegados as string,",
+				"          vehiculos_utilizados as string,",
+				"          duracion_dias as string,",
+				"          costo_operacion as string,",
+				"          resultado as string,",
+				"          detenidos as string,",
+				"          area_km2 as string,",
+				"          incidentes as string,",
+				"          observaciones as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     isolationLevel: 'READ_UNCOMMITTED',",
+				"     format: 'table') ~> OrigenOperacionesLimpias",
+				"source(output(",
+				"          id_zona as integer,",
+				"          nombre as string,",
+				"          departamento as string,",
+				"          frontera_con as string,",
+				"          tipo_terreno as string,",
+				"          altitud_msnm as integer,",
+				"          nivel_riesgo as string,",
+				"          acceso_carretero as boolean",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     isolationLevel: 'READ_UNCOMMITTED',",
+				"     format: 'table') ~> DimZonas",
+				"source(output(",
+				"          id_tipo as integer,",
+				"          nombre as string,",
+				"          descripcion as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     isolationLevel: 'READ_UNCOMMITTED',",
+				"     format: 'table') ~> DimTiposOperacion",
+				"source(output(",
+				"          id_tiempo as integer,",
+				"          fecha as date,",
+				"          anio as integer,",
+				"          mes as integer,",
+				"          nombre_mes as string,",
+				"          trimestre as integer",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     isolationLevel: 'READ_UNCOMMITTED',",
+				"     format: 'table') ~> DimTiempo",
+				"OrigenOperacionesLimpias derive(fk_id_tiempo_inicio = toInteger(toString(toDate(fecha_inicio, 'dd-MM-yyyy'), 'yyyyMMdd')),",
+				"          fk_id_tiempo_fin = toInteger(toString(toDate(fecha_fin, 'dd-MM-yyyy'), 'yyyyMMdd'))) ~> FormatearFecha",
+				"FormatearFecha, DimZonas join(OrigenOperacionesLimpias@id_zona == DimZonas@id_zona,",
+				"     joinType:'left',",
+				"     matchType:'exact',",
+				"     ignoreSpaces: false,",
+				"     broadcast: 'auto')~> CruceZonas",
+				"CruceZonas, DimTiposOperacion join(OrigenOperacionesLimpias@id_tipo == DimTiposOperacion@id_tipo,",
+				"     joinType:'left',",
+				"     matchType:'exact',",
+				"     ignoreSpaces: false,",
+				"     broadcast: 'auto')~> CruceTipos",
+				"CruceTipos, DimTiempo join(fk_id_tiempo_inicio == id_tiempo,",
+				"     joinType:'left',",
+				"     matchType:'exact',",
+				"     ignoreSpaces: false,",
+				"     broadcast: 'auto')~> CruceTiempo",
+				"CruceTiempo select(mapColumn(",
+				"          id_operacion,",
+				"          id_unidad_resp,",
+				"          efectivos_desplegados,",
+				"          vehiculos_utilizados,",
+				"          duracion_dias,",
+				"          costo_operacion,",
+				"          resultado,",
+				"          detenidos,",
+				"          area_km2,",
+				"          incidentes,",
+				"          id_tiempo = fk_id_tiempo_inicio,",
+				"          id_zona = DimZonas@id_zona,",
+				"          id_tipo = DimTiposOperacion@id_tipo",
+				"     ),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> select1",
+				"select1 sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     input(",
+				"          id_hecho_operacion as integer,",
+				"          id_tipo_operacion as integer,",
+				"          id_zona_operacion as integer,",
+				"          id_tiempo as integer,",
+				"          costo_operacion as string,",
+				"          efectivos_desplegados as string,",
+				"          vehiculos_utilizados as string,",
+				"          duracion_dias as string,",
+				"          resultados as string,",
+				"          detenidos as string,",
+				"          area_km2 as string,",
+				"          incidentes as string",
+				"     ),",
+				"     deletable:false,",
+				"     insertable:true,",
+				"     updateable:false,",
+				"     upsertable:false,",
+				"     format: 'table',",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     errorHandlingOption: 'stopOnFirstError',",
+				"     mapColumn(",
+				"          id_hecho_operacion = id_operacion,",
+				"          efectivos_desplegados,",
+				"          vehiculos_utilizados,",
+				"          duracion_dias,",
+				"          costo_operacion,",
+				"          resultados = resultado,",
+				"          detenidos,",
+				"          area_km2,",
+				"          incidentes,",
+				"          id_tiempo,",
+				"          id_zona_operacion = id_zona,",
+				"          id_tipo_operacion = id_tipo",
+				"     )) ~> CargarHechos"
+			]
+		}
+	}
+}

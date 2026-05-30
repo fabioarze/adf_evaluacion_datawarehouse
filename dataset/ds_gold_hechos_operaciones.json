@@ -1,0 +1,70 @@
+{
+	"name": "ds_gold_hechos_operaciones",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "ls_dw_fuerzas_armadas_destino",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "AzureSqlTable",
+		"schema": [
+			{
+				"name": "id_hecho_operacion",
+				"type": "int",
+				"precision": 10
+			},
+			{
+				"name": "id_tipo_operacion",
+				"type": "int",
+				"precision": 10
+			},
+			{
+				"name": "id_zona_operacion",
+				"type": "int",
+				"precision": 10
+			},
+			{
+				"name": "id_tiempo",
+				"type": "int",
+				"precision": 10
+			},
+			{
+				"name": "costo_operacion",
+				"type": "varchar"
+			},
+			{
+				"name": "efectivos_desplegados",
+				"type": "varchar"
+			},
+			{
+				"name": "vehiculos_utilizados",
+				"type": "varchar"
+			},
+			{
+				"name": "duracion_dias",
+				"type": "varchar"
+			},
+			{
+				"name": "resultados",
+				"type": "varchar"
+			},
+			{
+				"name": "detenidos",
+				"type": "varchar"
+			},
+			{
+				"name": "area_km2",
+				"type": "varchar"
+			},
+			{
+				"name": "incidentes",
+				"type": "varchar"
+			}
+		],
+		"typeProperties": {
+			"schema": "dbo",
+			"table": "Hechos_operacion"
+		}
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

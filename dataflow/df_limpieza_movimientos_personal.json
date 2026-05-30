@@ -1,0 +1,119 @@
+{
+	"name": "df_limpieza_movimientos_personal",
+	"properties": {
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "ds_bronze_movimientos_personal",
+						"type": "DatasetReference"
+					},
+					"name": "source1"
+				}
+			],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "ds_silver_movimientos_personal",
+						"type": "DatasetReference"
+					},
+					"name": "sink1"
+				}
+			],
+			"transformations": [
+				{
+					"name": "derivedColumn1"
+				},
+				{
+					"name": "select1"
+				}
+			],
+			"scriptLines": [
+				"source(output(",
+				"          id_movimiento as integer,",
+				"          id_efectivo as integer,",
+				"          id_unidad_destino as integer,",
+				"          id_rango as integer,",
+				"          id_tipo as integer,",
+				"          fecha_movimiento as string,",
+				"          antiguedad_anios as string,",
+				"          salario_mensual as string,",
+				"          observaciones as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     isolationLevel: 'READ_UNCOMMITTED',",
+				"     format: 'table') ~> source1",
+				"source1 derive(observaciones = iif(\r",
+				"    isNull(observaciones) || \r",
+				"    length(trim(observaciones)) == 0 || \r",
+				"    rlike(lower(trim(observaciones)), '^(s/n|n/a|sin obs\\\\.?)$'), \r",
+				"    'Sin Observaciones', \r",
+				"    initCap(trim(observaciones))\r",
+				"),",
+				"          fecha_movimiento = iif(isNull(fecha_movimiento) || length(trim(toString(fecha_movimiento))) == 0 || fecha_movimiento == 'NULL',      'Sin Dato',      toString(         coalesce(             toTimestamp(fecha_movimiento, 'yyyyMMdd'),             toTimestamp(fecha_movimiento, 'MM-dd-yyyy'),             toTimestamp(fecha_movimiento, 'yyyy-MM-dd'),             toTimestamp(fecha_movimiento, 'dd/MM/yyyy'),             toTimestamp(fecha_movimiento, 'yyyy/MM/dd'),             toTimestamp(fecha_movimiento, 'dd-MM-yyyy'),             toTimestamp(fecha_movimiento, 'MM/dd/yyyy')         ),          'dd-MM-yyyy'     ) ),",
+				"          antiguedad_anios = case(     isNull(antiguedad_anios) || trim(antiguedad_anios) == '' || rlike(regexReplace(trim(antiguedad_anios), '[^0-9a-zA-ZáéíóúÁÉÍÓÚñÑ]', ''), '^(0+|0a)$') || rlike(lower(trim(antiguedad_anios)), 'cero') || regexReplace(trim(antiguedad_anios), '[^0-9]', '') == '00', 'Sin antiguedad',     rlike(lower(trim(antiguedad_anios)), 'siete'), '7 años',     rlike(lower(trim(antiguedad_anios)), 'once'), '11 años',     rlike(lower(trim(antiguedad_anios)), 'doce'), '12 años',     rlike(lower(trim(antiguedad_anios)), 'quince'), '15 años',     rlike(lower(trim(antiguedad_anios)), 'diecisiete'), '17 años',     rlike(lower(trim(antiguedad_anios)), 'dieciocho'), '18 años',     rlike(lower(trim(antiguedad_anios)), 'veinte'), '20 años',     rlike(lower(trim(antiguedad_anios)), '(veintidos|veintidós)'), '22 años',     rlike(trim(antiguedad_anios), '(14\\\\.5|14,5)'), '14.5 años',     rlike(trim(antiguedad_anios), '(15\\\\.5|15,5)'), '15.5 años',     rlike(trim(antiguedad_anios), '(20\\\\.5|20,5)'), '20.5 años',     iif(length(regexReplace(trim(antiguedad_anios), '[^0-9]', '')) == 0 || regexReplace(trim(antiguedad_anios), '[^0-9]', '') == '0' || regexReplace(trim(antiguedad_anios), '[^0-9]', '') == '00', 'Sin antiguedad', regexReplace(trim(antiguedad_anios), '[^0-9]', '') + ' años') ),",
+				"          salario_mensual = iif(isNull(salario_mensual) || trim(salario_mensual) == '', toString(null()),\r",
+				"    replace(\r",
+				"        'Bs. ' + toString(\r",
+				"            iif(\r",
+				"                locate('.', regexReplace(trim(salario_mensual), '[BsBS\\\\-\\\\s]', '')) > 0,\r",
+				"                toString(\r",
+				"                    iif(\r",
+				"                        length(regexReplace(split(regexReplace(trim(salario_mensual), '[BsBS\\\\-\\\\s]', ''), '\\\\.')[1], '[^0-9]', '')) == 4,\r",
+				"                        toString(left(regexReplace(trim(salario_mensual), '[^0-9]', ''), 1) + '.' + substring(regexReplace(trim(salario_mensual), '[^0-9]', ''), 2, 3) + ',' + right(regexReplace(trim(salario_mensual), '[^0-9]', ''), 2)),\r",
+				"                        toString(replace(regexReplace(trim(salario_mensual), '[BsBS\\\\-\\\\s]', ''), '.', ','))\r",
+				"                    )\r",
+				"                ),\r",
+				"                toString(\r",
+				"                    iif(\r",
+				"                        length(regexReplace(trim(salario_mensual), '[^0-9]', '')) == 4,\r",
+				"                        toString(left(regexReplace(trim(salario_mensual), '[^0-9]', ''), 1) + '.' + right(regexReplace(trim(salario_mensual), '[^0-9]', ''), 3) + ',00'),\r",
+				"                        toString(regexReplace(trim(salario_mensual), '[^0-9]', '') + ',00')\r",
+				"                    )\r",
+				"                )\r",
+				"            )\r",
+				"        ),\r",
+				"        'Bs. ,',\r",
+				"        'Bs. '\r",
+				"    )\r",
+				")) ~> derivedColumn1",
+				"derivedColumn1 select(mapColumn(",
+				"          id_movimiento,",
+				"          id_efectivo,",
+				"          id_unidad_destino,",
+				"          id_rango,",
+				"          id_tipo,",
+				"          fecha_movimiento,",
+				"          antiguedad_anios,",
+				"          salario_mensual,",
+				"          observaciones",
+				"     ),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> select1",
+				"select1 sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     deletable:false,",
+				"     insertable:true,",
+				"     updateable:false,",
+				"     upsertable:false,",
+				"     format: 'table',",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     errorHandlingOption: 'stopOnFirstError',",
+				"     mapColumn(",
+				"          id_movimiento,",
+				"          id_efectivo,",
+				"          id_unidad_destino,",
+				"          id_rango,",
+				"          id_tipo,",
+				"          fecha_movimiento,",
+				"          antiguedad_anios,",
+				"          salario_mensual,",
+				"          observaciones",
+				"     )) ~> sink1"
+			]
+		}
+	}
+}

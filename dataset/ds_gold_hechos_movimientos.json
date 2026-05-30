@@ -1,0 +1,17 @@
+{
+	"name": "ds_gold_hechos_movimientos",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "ls_dw_fuerzas_armadas_destino",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "AzureSqlTable",
+		"schema": [],
+		"typeProperties": {
+			"schema": "dbo",
+			"table": "hechos_movimientos"
+		}
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}
